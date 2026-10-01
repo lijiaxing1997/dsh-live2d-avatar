@@ -1,0 +1,57 @@
+# 兴河桌宠自己的 Agent preset。
+#
+# 为什么桌宠需要一个 preset：web bundle 把 compaction-basic / command-compact /
+# tool-result-pruner 从**宿主层关掉**，改由 preset 提供
+# （packages/bundle/web-app/cordis.patch.yml 里的 `disabled: true`，以及
+# packages/bundle/web-app/presets/*.patch.yml 里的重新声明）。而桌宠的会话是
+# `agents.create/resume` 直接建的 —— 那条路（AgentRegistry → AgentLoop）**不经过
+# preset 组合**，只有 GUI 会话走的 sessionController 才会 `agentPresets.mount`。
+#
+# 结果：桌宠会话以前一个压缩器都没有，上下文只涨不落（实测 24 小时长到 21 万
+# token，205 步里 0 条 compaction 事件），而它每 10 秒就可能醒一次。这个 preset
+# 就是补上那一块：只带压缩三件套，不带任何编码工具。
+#
+# 阈值也按桌宠重设。宿主默认是 `min(0.8 × 上下文窗口, 窗口 − 输出预留 − headroom)`：
+# deepseek-flash 声明 1M 窗口、单请求预留 256k 输出，于是阈值 ≈ 67.8 万 token ——
+# 对一条"每回合只说二十个字"的会话等于永不触发。这里取 30%（30 万 token）：
+#   阈值 = min(1M × 0.3, 1M − 1024 − 8192) = 300,000
+#   保留 = 12,000（最近的对话原样留着，更早的折叠成一段摘要）
+#
+# 为什么是 30% 而不是最初的 3%：门限比较的是「下一个请求的真实压力」——provider
+# 报回的 input + cache 用量，含系统提示词和 25 个工具 schema，而不是面板上那个
+# 按 chars/4 估的 surface 读数。桌宠会话的固定前缀（系统提示词 + 工具 schema）加
+# 上保留尾部就已经接近 3 万 token，阈值正好压在稳态地板上，于是每一步 pre-step
+# 都会触发折叠（实测 turn 245–251 每个 step 都折 2 次）。抬到 30 万之后，折叠
+# 回到「很少发生、发生一次就够」的位置。
+- insert:
+    - id: preset-live2d-pet
+      name: '@deepseek-ai/dsh-agent-preset'
+      config:
+        id: live2d-pet
+        name: 兴河桌宠
+        description: 桌宠自己的会话：只带上下文压缩，不带编码工具。
+        # 排在 standard(1) / cordis 之后：它不该抢默认选中项。
+        order: 50
+        plugins:
+          - id: compaction
+            name: cordis:group
+            group: true
+            isolate:
+              compaction: true
+              toolResultPruner: true
+            config:
+              - id: compaction-basic
+                name: '@deepseek-ai/dsh-compaction-basic'
+                config:
+                  thresholdRatio: 0.3
+                  retainTokens: 12000
+                  headroomTokens: 8192
+              # 让侧栏里那条「兴河桌宠」会话也支持人工 /compact。
+              - id: command-compact
+                name: '@deepseek-ai/dsh-command-compact'
+              - id: tool-result-pruner
+                name: '@deepseek-ai/dsh-compaction-tool-result-pruner'
+                config:
+                  thresholdChars: 8192
+                  headChars: 4096
+                  tailChars: 1024

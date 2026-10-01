@@ -1,0 +1,115 @@
+# dsh bundle layer: mount the Live2D avatar plugin (host + browser halves).
+# These values are the plugin's defaults. Everything below (and more) is also
+# editable at runtime in 设置 → 「兴河桌宠」, which persists to
+# $DSH_HOME/live2d-avatar/config.json and wins over this file.
+- insert:
+    - id: live2d-avatar
+      name: '@local/dsh-live2d-avatar'
+      config:
+        # Show the avatar at all.
+        enabled: true
+        # Let the PET's own replies drive the bubble, speech and lip sync. This
+        # no longer follows the conversation you are looking at: the pet speaks
+        # from its own session (see below) or not at all.
+        autoReact: true
+        # When the avatar plays a motion while talking:
+        #   reply = one motion per reply (default), tag = only when the agent
+        #   performs explicitly, off = never.
+        autoMotion: reply
+        # Read replies out loud. Which engine reads them is `ttsEngine`:
+        #   edge    = Microsoft Edge 的朗读服务，免费、开箱可用（默认）
+        #   minimax = MiniMax 语音合成，音色更像真人，但要用下面的 API Key
+        speak: true
+        ttsEngine: edge
+        # Edge 引擎的音色与音调（±Hz）。语速 `ttsRate` 两个引擎共用。
+        # MiniMax 引擎：
+        #   ttsMinimaxKey   用户自己的 API Key —— 只存在本机 config.json，
+        #                   永远不回传给页面，分享出去的卡也不带它
+        #   ttsMinimaxModel 默认 speech-2.8-turbo
+        #   pitch 是 ±12 半音（不是 Edge 的 ±100Hz），vol 是 (0, 10]
+        ttsVoice: zh-CN-XiaoxiaoNeural
+        ttsRate: 1
+        ttsPitch: 0
+        ttsMinimaxKey: ''
+        ttsMinimaxModel: speech-2.8-turbo
+        ttsMinimaxVoice: male-qn-qingse
+        ttsMinimaxVolume: 1
+        ttsMinimaxPitch: 0
+        ttsMinimaxEmotion: ''
+        ttsMinimaxLanguage: auto
+        # Allow <动作>x</动作> / <表情>y</表情> inside the reply text. On by
+        # default so a fresh install gets it without hunting through 设置; the
+        # switch in 设置 → 会话 turns it off, and an explicit false in
+        # config.json stays off.
+        motionTags: true
+        # Bubble length, and how much of it is spoken.
+        maxBubbleChars: 400
+        speechMaxChars: 180
+        # Preferred model id (see GET /avatar/models; the settings page writes
+        # this). A character card that names its own model wins over this.
+        modelId: ''
+        # Fallback persona used when no character card is active. It goes ONLY
+        # into the pet's own session prompt now — a normal session never sees
+        # the avatar's persona, inventory or instructions.
+        persona: ''
+        # Fallback extra performance instructions; a character card's own
+        # `prompt` overrides it. Pet-scoped, like `persona`.
+        extraPrompt: ''
+        # Extra model directories; each holds `<name>/<anything>.model3.json`.
+        extraModelsDirs: []
+        # Which installed avatar is live. Cards themselves live in
+        # $DSH_HOME/live2d-avatar/avatars/<id>.json, model files in .../models/,
+        # so neither is written here. A model folder may also carry its own
+        # `xinghe.json` (written by 「导出」), which fills a card on import.
+        activeAvatarId: ''
+
+        # --- 桌宠自己的会话 -------------------------------------------------
+        # The pet owns a real session with its own workspace, system prompt and
+        # tools, so nothing about it leaks into the sessions you work in.
+        # Give it the avatar at all (off = it stops talking; session stays).
+        petEnabled: true
+        # Where that session's workspace lives. Changing it needs 「重建会话」.
+        petWorkspacePath: ''
+        # Written by the host once the pet session exists; cleared by 重建会话.
+        petSessionId: ''
+        # Which model the pet uses. Empty = follow the deployment default (the
+        # settings page offers the live model catalog). Its turns are tiny but
+        # frequent, so a small model is usually the right answer. Changing any
+        # of these needs 「重建会话」 to take effect on the running session.
+        petProvider: ''
+        petModel: ''
+        # Reasoning effort for the pet's own requests. Defaults to off: paying a
+        # whole chain of thought for 「隔壁那个会话在改什么」 is slow and
+        # expensive. A model that does not declare this value keeps its own default.
+        petReasoningEffort: 'off'
+        # Output cap for one pet request. The adapter default reserves 256k
+        # output tokens, which is absurd for a one-line balloon and also skews
+        # the compaction pressure budget. Needs 「重建会话」.
+        petMaxTokens: 1024
+        # Fold the pet's earlier context right before it speaks again after this
+        # many idle hours; 0 turns it off. Aimed at the worst case measured in
+        # the field: a 4.5h pause expired the prompt cache, and the next turn
+        # re-sent ~210k tokens at full price just to answer SKIP.
+        petIdleCompactHours: 8
+        # Ambient observation: another session emits text and the pet is asked
+        # whether it wants to comment (or stay silent with SKIP).
+        observeEnabled: true
+        # Percentage, 0–100, for text the session emitted *mid-turn* (a step that
+        # still has tool calls behind it). The turn's last text message is always
+        # observed, whatever this says — that is the moment the work finished.
+        observeProbability: 70
+        # Minimum gap between two mid-turn observations, so the pet cannot spam.
+        # The turn-final observation is not gated by it.
+        observeMinIntervalMs: 45000
+        # Let the pet call pet_send_message to speak INTO another session.
+        allowSessionWrite: true
+        # Let the pet call pet_new_session to create a whole new session, with a
+        # workspace, model and reasoning effort of its choosing (and optionally a
+        # first message that starts it immediately). Same thing the user can do
+        # by clicking 新会话 — the tool's own description tells the pet to ask
+        # before doing it unless it was explicitly told to.
+        allowSessionCreate: true
+        # Also register live2d_perform for ordinary sessions. Off by default:
+        # that tool schema is exactly the prompt pollution this design removes.
+        # Needs a plugin reload to take effect.
+        allowMainSessionPerform: false

@@ -1,0 +1,47 @@
+{
+  "name": "@local/dsh-live2d-avatar",
+  "version": "0.1.0",
+  "private": true,
+  "description": "兴河桌宠 — a Live2D digital-human avatar for the DSH Web UI: reacts to the agent's replies and can be driven by the agent itself",
+  "type": "module",
+  "exports": {
+    ".": "./index.js",
+    "./client": "./client.js",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "index.js",
+    "client.js",
+    "lib/",
+    "cordis.patch.yml",
+    "presets/",
+    "assets/",
+    "README.md",
+    "LICENSE-EULA.md",
+    "LICENSE-live2d.md"
+  ],
+  "engines": {
+    "node": ">=20.0.0"
+  },
+  "dsh": {
+    "bundle": {
+      "patch": [
+        "./cordis.patch.yml",
+        "./presets/live2d-pet.patch.yml"
+      ]
+    },
+    "client": {
+      "platform": "web",
+      "immediately": true,
+      "inject": [
+        "@deepseek-ai/dsh-client-ui-conversation",
+        "@deepseek-ai/dsh-client-ui-layout",
+        "@deepseek-ai/dsh-client-ui-settings"
+      ]
+    }
+  },
+  "license": "SEE LICENSE IN LICENSE-EULA.md",
+  "optionalDependencies": {
+    "ws": "^8.22.0"
+  }
+}
