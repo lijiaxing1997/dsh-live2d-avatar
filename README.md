@@ -11,18 +11,7 @@ DSH Web 界面的 Live2D 数字人插件。它以「兴河桌宠」的名字出�
 2. 点右上角的 **「添加插件」**；
 3. 在「包名或地址」里粘贴仓库地址：`https://github.com/lijiaxing1997/dsh-live2d-avatar`；
 4. 点 **「安装」**，等它跑完；
-5. 提示「更改将在下次启动生效」后，**重启 dsh web** —— 宿主半边是 Node 模块，不参与热更新。
 
-重启后侧边栏左下角、设置按钮上方多出「兴河桌宠」一行，那就是它。
-
-> 「添加插件」的同一个输入框也接受**本机插件目录的绝对路径**，所以要在本机开发或调试时，
-> 把目录路径粘进去即可。
-
-环境要求：DSH 的 Web profile（开发与验证版本 `0.2.0-rc.1`）、Node.js `>= 20`。朗读选 Edge TTS
-时，宿主机需要可选依赖 `ws`。
-
-卸载：在「设置 → 插件」里找到「兴河桌宠」点卸载。已导入的形象与配置保留在
-`$DSH_HOME/live2d-avatar/`，不随卸载删除。
 
 ## 功能
 
@@ -60,29 +49,11 @@ dsh-live2d-avatar/
 └── tests/              回归测试
 ```
 
-**两半是怎么被加载的。** 宿主半边是普通 ESM，由 Cordis 直接 `import`，靠 `export const inject`
-与 `export function apply` 拿到宿主能力 —— `webServer` 注册 `/avatar` 路由，`tools` 注册
-`pet_*` 工具，`agents` / `presets` 给桌宠开它自己的会话。浏览器半边是 classic script，唯一
-入口是 `window.__ModuleLoader__.load({ id, factory(require) })`：DSH 把各插件的 bundle 文本
-首尾拼成一个 combo 脚本下发，中间不解析、不转译，`require('react')` 这类依赖由宿主注入。
-
-**渲染器是独立的一层。** `src/live2d/viewer.ts` 把 Cubism SDK 包成一个只认「模型 / 显示大小 /
-位置」的渲染器，用 esbuild 打成 `assets/runtime.js`（ESM），浏览器侧在需要时才动态 `import`。
-缩放与位移的范围由渲染器自己收住，宿主半边写卡时夹的是同一组常量，两边不会各说各话。
-
-**数据都在本机。** 形象卡、封面、导入的模型、语音配置与 API Key 全部落在
-`$DSH_HOME/live2d-avatar/` 下，不进仓库、不上传；只有点「导出」时，才会把一张卡的配置与
-模型打成一个 zip。
-
-**发行物。** `build.mjs` 把可发布的部分打成自包含的 `dist/`。GitHub 上的这个仓库就是该产物：
-只含构建产物，不含源码、测试与构建脚本。
 
 ## 许可
 
-本插件是**专有软件**，安装与使用受[最终用户许可协议（EULA）](./LICENSE-EULA.md)约束：可免费
-用于个人与商业用途，但不得再分发、修改、反向工程，或移除版权与许可声明。
+安装与使用受[最终用户许可协议（EULA）](./LICENSE-EULA.md)约束
 
 `assets/Core/**`、`assets/models/**` 与 `src/live2d/framework/**` 来自 Live2D Inc.，按 Live2D
 自身的条款提供，见 [LICENSE-live2d.md](./LICENSE-live2d.md) 与 `assets/Core/LICENSE.md`。
 
-发行版只提供构建产物，不提供源码。
